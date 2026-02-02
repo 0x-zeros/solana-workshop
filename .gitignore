@@ -1,0 +1,77 @@
+# ==================
+# Solana / Anchor
+# ==================
+.anchor
+target/
+test-ledger/
+.ledger/
+
+# ==================
+# Rust
+# ==================
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# ==================
+# Node.js / TypeScript
+# ==================
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage / reports
+coverage/
+.nyc_output/
+
+# Caches
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+
+# ==================
+# Environment / Secrets
+# ==================
+.env
+.env.*
+!.env.example
+*.pem
+keypair.json
+*-keypair.json
+
+# ==================
+# Editor / IDE
+# ==================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==================
+# OS
+# ==================
+.DS_Store
+Thumbs.db
+
+# ==================
+# Misc
+# ==================
+.yarn
+*.bak
