@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:learn.blueshift.gg)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "WebFetch(domain:www.anchor-lang.com)",
+      "WebFetch(domain:solana.com)",
+      "Bash(anchor build:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo test-sbf:*)"
+    ]
+  }
+}
