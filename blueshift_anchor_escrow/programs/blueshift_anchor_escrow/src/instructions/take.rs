@@ -1,3 +1,12 @@
+use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    transfer_checked, close_account, CloseAccount,
+    Mint, TokenAccount, TokenInterface, TransferChecked,
+};
+use crate::state::Escrow;
+use crate::errors::EscrowError;
+
 #[derive(Accounts)]
 pub struct Take<'info> {
   #[account(mut)]

@@ -1,3 +1,11 @@
+use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
+};
+use crate::state::Escrow;
+use crate::errors::EscrowError;
+
 #[derive(Accounts)]
 #[instruction(seed: u64)]
 pub struct Make<'info> {

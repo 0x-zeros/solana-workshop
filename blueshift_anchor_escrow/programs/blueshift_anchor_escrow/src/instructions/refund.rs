@@ -1,3 +1,12 @@
+use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_interface::{
+    transfer_checked, close_account, CloseAccount,
+    Mint, TokenAccount, TokenInterface, TransferChecked,
+};
+use crate::state::Escrow;
+use crate::errors::EscrowError;
+
 #[derive(Accounts)]
 pub struct Refund<'info> {
     #[account(mut)]
@@ -24,7 +33,8 @@ pub struct Refund<'info> {
     pub vault: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
-        mut,
+        init_if_needed,                                                                                                                   
+        payer = maker, 
         associated_token::mint = mint_a,
         associated_token::authority = maker,
         associated_token::token_program = token_program
