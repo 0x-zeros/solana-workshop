@@ -14,6 +14,7 @@
  */
 
 //https://learn.blueshift.gg/zh-CN/challenges/typescript-mint-an-spl-token
+// https://learn.blueshift.gg/zh-CN/courses/spl-token-with-web3js/introduction
 
 import {
     Keypair,
