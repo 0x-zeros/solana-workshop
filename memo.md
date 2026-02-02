@@ -26,3 +26,12 @@ anchor test --skip-local-validator
 ```bash
 yarn test:surfpool
 ```
+
+
+no-git:
+```bash
+anchor init -h 
+anchor init blueshift_anchor_escrow --no-git --test-template mollusk
+cd blueshift_anchor_escrow
+
+```
