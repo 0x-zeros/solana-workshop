@@ -56,6 +56,17 @@ pub struct Take<'info> {
 }
 
 impl<'info> Take<'info> {
+
+    pub fn handler(ctx: Context<Take>) -> Result<()> {
+        // Transfer Token B to Maker
+        ctx.accounts.transfer_to_maker()?;
+    
+        // Withdraw and close the Vault
+        ctx.accounts.withdraw_and_close_vault()?;
+    
+        Ok(())
+    }
+    
     fn transfer_to_maker(&mut self) -> Result<()> {
         transfer_checked(
             CpiContext::new(
@@ -113,13 +124,5 @@ impl<'info> Take<'info> {
         Ok(())
     }
 
-    pub fn handler(ctx: Context<Take>) -> Result<()> {
-        // Transfer Token B to Maker
-        ctx.accounts.transfer_to_maker()?;
-    
-        // Withdraw and close the Vault
-        ctx.accounts.withdraw_and_close_vault()?;
-    
-        Ok(())
-    }
+
 }
