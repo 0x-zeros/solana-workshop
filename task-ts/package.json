@@ -1,0 +1,29 @@
+{
+    "name": "task-ts",
+    "version": "1.0.0",
+    "description": "Solana Bootcamp 2026 task-ts",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "dev": "ts-node src/index.ts",
+        "test:native": "ts-node src/test-native.ts",
+        "test:anchor": "ts-node src/test-anchor.ts"
+    },
+    "keywords": [
+        "solana",
+        "blockchain",
+        "typescript"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@solana/spl-token": "^0.4.14",
+        "@solana/web3.js": "^1.98.4"
+    },
+    "devDependencies": {
+        "@types/node": "^24.10.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3"
+    }
+}
