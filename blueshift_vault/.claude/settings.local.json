@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:litesvm.github.io)",
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run lint:fix:*)"
+    ]
+  }
+}
