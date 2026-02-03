@@ -1,12 +1,18 @@
-#![no_std]
+// #![no_std] //需要吗？
 
-use pinocchio::{account_info::AccountInfo, entrypoint, nostd_panic_handler, program_error::ProgramError, pubkey::Pubkey, ProgramResult};
+use pinocchio::{
+    account_info::AccountInfo, entrypoint, program_error::ProgramError, pubkey::Pubkey,
+    ProgramResult,
+};
 
 entrypoint!(process_instruction);
-nostd_panic_handler!();
+// nostd_panic_handler!();
 
 mod deposit;
 mod withdraw;
+
+use deposit::Deposit;
+use withdraw::Withdraw;
 
 // 22222222222222222222222222222222222222222222
 pub const ID: Pubkey = [
@@ -27,4 +33,3 @@ fn process_instruction(
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }
-

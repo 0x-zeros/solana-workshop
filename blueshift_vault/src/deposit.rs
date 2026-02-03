@@ -1,3 +1,12 @@
+use core::mem::size_of;
+
+use pinocchio::{
+    account_info::AccountInfo,
+    program_error::ProgramError,
+    pubkey::find_program_address,
+    ProgramResult,
+};
+use pinocchio_system::instructions::Transfer;
 
 pub struct Deposit<'a> {
     pub accounts: DepositAccounts<'a>,
@@ -33,7 +42,6 @@ impl<'a> Deposit<'a> {
     }
 }
 
-
 pub struct DepositAccounts<'a> {
     pub owner: &'a AccountInfo,
     pub vault: &'a AccountInfo,
@@ -60,7 +68,7 @@ impl<'a> TryFrom<&'a [AccountInfo]> for DepositAccounts<'a> {
             return Err(ProgramError::InvalidAccountData);
         }
 
-        let (vault_key, _) = find_program_address(&[b"vault", owner.key()], &crate::ID);
+        let (vault_key, _) = find_program_address(&[b"vault".as_slice(), owner.key().as_ref()], &crate::ID);
         if vault.key().ne(&vault_key) {
             return Err(ProgramError::InvalidAccountOwner);
         }

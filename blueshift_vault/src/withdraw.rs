@@ -1,3 +1,12 @@
+use pinocchio::{
+    account_info::AccountInfo,
+    instruction::{Seed, Signer},
+    program_error::ProgramError,
+    pubkey::find_program_address,
+    ProgramResult,
+};
+use pinocchio_system::{self, instructions::Transfer};
+
 pub struct Withdraw<'a> {
     pub accounts: WithdrawAccounts<'a>,
 }
@@ -63,11 +72,15 @@ impl<'a> TryFrom<&'a [AccountInfo]> for WithdrawAccounts<'a> {
             return Err(ProgramError::InvalidAccountData);
         }
 
-        let (vault_key, bump) = find_program_address(&[b"vault", owner.key()], &crate::ID);
+        let (vault_key, bump) = find_program_address(&[b"vault".as_slice(), owner.key().as_ref()], &crate::ID);
         if &vault_key != vault.key() {
             return Err(ProgramError::InvalidAccountOwner);
         }
 
-        Ok(Self { owner, vault, bumps: [bump] })
+        Ok(Self {
+            owner,
+            vault,
+            bumps: [bump],
+        })
     }
 }
