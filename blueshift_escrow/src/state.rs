@@ -36,35 +36,35 @@ impl Escrow {
         Ok(unsafe { &*core::mem::transmute::<*const u8, *const Self>(bytes.as_ptr()) })
     }
 
-    #[inline(always)]
-    pub fn set_seed(&mut self, seed: u64) {
-        self.seed = seed;
-    }
+    // #[inline(always)]
+    // pub fn set_seed(&mut self, seed: u64) {
+    //     self.seed = seed;
+    // }
 
-    #[inline(always)]
-    pub fn set_maker(&mut self, maker: Pubkey) {
-        self.maker = maker;
-    }
+    // #[inline(always)]
+    // pub fn set_maker(&mut self, maker: Pubkey) {
+    //     self.maker = maker;
+    // }
 
-    #[inline(always)]
-    pub fn set_mint_a(&mut self, mint_a: Pubkey) {
-        self.mint_a = mint_a;
-    }
+    // #[inline(always)]
+    // pub fn set_mint_a(&mut self, mint_a: Pubkey) {
+    //     self.mint_a = mint_a;
+    // }
 
-    #[inline(always)]
-    pub fn set_mint_b(&mut self, mint_b: Pubkey) {
-        self.mint_b = mint_b;
-    }
+    // #[inline(always)]
+    // pub fn set_mint_b(&mut self, mint_b: Pubkey) {
+    //     self.mint_b = mint_b;
+    // }
 
-    #[inline(always)]
-    pub fn set_receive(&mut self, receive: u64) {
-        self.receive = receive;
-    }
+    // #[inline(always)]
+    // pub fn set_receive(&mut self, receive: u64) {
+    //     self.receive = receive;
+    // }
 
-    #[inline(always)]
-    pub fn set_bump(&mut self, bump: [u8; 1]) {
-        self.bump = bump;
-    }
+    // #[inline(always)]
+    // pub fn set_bump(&mut self, bump: [u8; 1]) {
+    //     self.bump = bump;
+    // }
 
     #[inline(always)]
     pub fn set_inner(

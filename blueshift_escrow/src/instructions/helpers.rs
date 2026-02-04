@@ -3,7 +3,7 @@ use pinocchio::{
     program_error::ProgramError,
     pubkey::Pubkey,
     ProgramResult,
-    sysvars::rent::Rent,
+    sysvars::{rent::Rent, Sysvar},
 };
 use pinocchio_system::instructions::CreateAccount;
 use pinocchio_token::state::Mint;
@@ -93,7 +93,7 @@ impl MintInterface {
     pub fn check(account: &AccountInfo) -> ProgramResult {
         // 检查账户是否由 Token Program 或 Token-2022 Program 拥有
         if !account.is_owned_by(&pinocchio_token::ID) 
-            && !account.is_owned_by(&spl_token_2022::ID) {
+            && !account.is_owned_by(&SPL_TOKEN_2022_ID) {
             return Err(ProgramError::InvalidAccountOwner);
         }
 
@@ -107,7 +107,7 @@ impl MintInterface {
 }
 //todo 这么hardcoding吗？
 /// Token-2022 Program ID
-const spl_token_2022: Pubkey = [
+const SPL_TOKEN_2022_ID: Pubkey = [
     0x06, 0xdd, 0xf6, 0xe1, 0xd7, 0x65, 0xa1, 0x93,
     0xd9, 0xcb, 0xe1, 0x46, 0xce, 0xeb, 0x79, 0xac,
     0x1c, 0xb4, 0x85, 0xed, 0x5f, 0x5b, 0x37, 0x91,

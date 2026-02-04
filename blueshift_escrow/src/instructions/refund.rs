@@ -119,7 +119,7 @@ impl<'a> TryFrom<&'a [AccountInfo]> for RefundAccounts<'a> {
         ProgramAccount::check(escrow)?;
         MintInterface::check(mint_a)?;
         AssociatedTokenAccount::check(vault, escrow, mint_a, token_program)?;
-        AssociatedTokenAccount::check(maker_ata_a, maker, mint_a, token_program)?;
+        // 不检查 maker_ata_a，因为它可能还没有初始化，会在 init_if_needed 中创建
 
         // Return the accounts
         Ok(Self {
