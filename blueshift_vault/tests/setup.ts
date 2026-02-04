@@ -1,5 +1,5 @@
 import { LiteSVM } from "litesvm";
-import { Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Keypair, PublicKey, LAMPORTS_PER_SOL, SystemProgram } from "@solana/web3.js";
 import * as path from "path";
 import { PROGRAM_ID } from "./utils/constants";
 
@@ -21,12 +21,32 @@ export function createSVM(): LiteSVM {
  * @param lamports - 空投的 lamports 数量
  * @returns 新创建的 Keypair
  */
-export function createFundedAccount(
+export function createFundedAccount_v0(
   svm: LiteSVM,
   lamports: number = 10 * LAMPORTS_PER_SOL
 ): Keypair {
   const keypair = Keypair.generate();
   svm.airdrop(keypair.publicKey, BigInt(lamports));
+  return keypair;
+}
+
+/**
+ * 创建一个有资金的测试账户 (使用 setAccount)
+ * @param svm - LiteSVM 实例
+ * @param lamports - 账户余额 (lamports)
+ * @returns 新创建的 Keypair
+ */
+export function createFundedAccount(
+  svm: LiteSVM,
+  lamports: number = 10 * LAMPORTS_PER_SOL
+): Keypair {
+  const keypair = Keypair.generate();
+  svm.setAccount(keypair.publicKey, {
+    lamports,
+    data: new Uint8Array(0),
+    owner: SystemProgram.programId,
+    executable: false,
+  });
   return keypair;
 }
 
