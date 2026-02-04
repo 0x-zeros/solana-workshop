@@ -8,6 +8,25 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 use pinocchio_token::state::Mint;
 
+// Associated Token Program ID
+// Pubkey: ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL
+// 与 pinocchio_associated_token_account::ID 值相同
+pub const ASSOCIATED_TOKEN_PROGRAM_ID: Pubkey = [
+    0x8c, 0x97, 0x25, 0x8f, 0x4e, 0x24, 0x89, 0xf1,
+    0xbb, 0x3d, 0x10, 0x29, 0x14, 0x8e, 0x0d, 0x83,
+    0x0b, 0x5a, 0x13, 0x99, 0xda, 0xff, 0x10, 0x84,
+    0x04, 0x8e, 0x7b, 0xd8, 0xdb, 0xe9, 0xf8, 0x59,
+];
+
+// Token-2022 Program ID (pinocchio 未提供，需手动定义)
+// Pubkey: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
+pub const SPL_TOKEN_2022_ID: Pubkey = [
+    0x06, 0xdd, 0xf6, 0xe1, 0xd7, 0x65, 0xa1, 0x93,
+    0xd9, 0xcb, 0xe1, 0x46, 0xce, 0xeb, 0x79, 0xac,
+    0x1c, 0xb4, 0x85, 0xed, 0x5f, 0x5b, 0x37, 0x91,
+    0x3a, 0x8c, 0xf5, 0x85, 0x7e, 0xff, 0x00, 0xa9,
+];
+
 /// 辅助结构体用于签名者账户检查
 pub struct SignerAccount;
 
@@ -59,13 +78,15 @@ impl ProgramAccount {
         Ok(())
     }
 
+    /// 关闭账户时设置的 discriminator，防止重新初始化攻击
+    const CLOSED_ACCOUNT_DISCRIMINATOR: u8 = 255;
+
     /// 关闭 Program Account，将 lamports 转移到目标账户
+    /// 设置第一个字节为 255 防止账户被重新初始化
     pub fn close(account: &AccountInfo, destination: &AccountInfo) -> ProgramResult {
         // 获取账户余额
         let dest_starting_lamports = destination.lamports();
         let account_lamports = account.lamports();
-
-        //todo 这边是不是还是使用Transfer比较好？
 
         // 转移 lamports
         unsafe {
@@ -75,10 +96,12 @@ impl ProgramAccount {
             *account.borrow_mut_lamports_unchecked() = 0;
         }
 
-        // 清空账户数据
-        account
-            .try_borrow_mut_data()?
-            .fill(0);
+        // 清空账户数据，并设置 discriminator 防止重新初始化
+        let mut data = account.try_borrow_mut_data()?;
+        if !data.is_empty() {
+            data[0] = Self::CLOSED_ACCOUNT_DISCRIMINATOR;
+            data[1..].fill(0);
+        }
 
         Ok(())
     }
@@ -89,30 +112,29 @@ pub struct MintInterface;
 
 impl MintInterface {
     /// 检查账户是否为有效的 Token Mint
+    /// Token Program: 精确匹配 Mint::LEN
+    /// Token-2022: 允许 >= Mint::LEN（支持扩展数据）
     #[inline(always)]
     pub fn check(account: &AccountInfo) -> ProgramResult {
-        // 检查账户是否由 Token Program 或 Token-2022 Program 拥有
-        if !account.is_owned_by(&pinocchio_token::ID) 
-            && !account.is_owned_by(&SPL_TOKEN_2022_ID) {
-            return Err(ProgramError::InvalidAccountOwner);
-        }
+        let data_len = account.data_len();
 
-        // 检查账户数据长度
-        if account.data_len() != Mint::LEN {
-            return Err(ProgramError::InvalidAccountData);
+        if account.is_owned_by(&pinocchio_token::ID) {
+            // Token Program: 精确匹配长度
+            if data_len != Mint::LEN {
+                return Err(ProgramError::InvalidAccountData);
+            }
+        } else if account.is_owned_by(&SPL_TOKEN_2022_ID) {
+            // Token-2022: 允许扩展数据，长度 >= Mint::LEN
+            if data_len < Mint::LEN {
+                return Err(ProgramError::InvalidAccountData);
+            }
+        } else {
+            return Err(ProgramError::InvalidAccountOwner);
         }
 
         Ok(())
     }
 }
-//todo 这么hardcoding吗？
-/// Token-2022 Program ID
-const SPL_TOKEN_2022_ID: Pubkey = [
-    0x06, 0xdd, 0xf6, 0xe1, 0xd7, 0x65, 0xa1, 0x93,
-    0xd9, 0xcb, 0xe1, 0x46, 0xce, 0xeb, 0x79, 0xac,
-    0x1c, 0xb4, 0x85, 0xed, 0x5f, 0x5b, 0x37, 0x91,
-    0x3a, 0x8c, 0xf5, 0x85, 0x7e, 0xff, 0x00, 0xa9,
-];
 
 /// 辅助结构体用于 Associated Token Account 操作
 pub struct AssociatedTokenAccount;
@@ -127,8 +149,8 @@ impl AssociatedTokenAccount {
         system_program: &AccountInfo,
         token_program: &AccountInfo,
     ) -> ProgramResult {
-        // 验证 ATA 地址是否正确
-        let ata_address = get_associated_token_address(owner.key(), mint.key());
+        // 验证 ATA 地址是否正确（支持 Token 和 Token-2022）
+        let ata_address = get_associated_token_address(owner.key(), mint.key(), token_program.key());
         if account.key() != &ata_address {
             return Err(ProgramError::InvalidSeeds);
         }
@@ -175,8 +197,8 @@ impl AssociatedTokenAccount {
             return Err(ProgramError::InvalidAccountOwner);
         }
 
-        // 验证 ATA 地址是否正确
-        let ata_address = get_associated_token_address(owner.key(), mint.key());
+        // 验证 ATA 地址是否正确（支持 Token 和 Token-2022）
+        let ata_address = get_associated_token_address(owner.key(), mint.key(), token_program.key());
         if account.key() != &ata_address {
             return Err(ProgramError::InvalidSeeds);
         }
@@ -186,29 +208,25 @@ impl AssociatedTokenAccount {
 }
 
 /// 计算 Associated Token Address
-fn get_associated_token_address(wallet: &Pubkey, mint: &Pubkey) -> Pubkey {
+/// 支持 Token Program 和 Token-2022
+pub fn get_associated_token_address(
+    wallet: &Pubkey,
+    mint: &Pubkey,
+    token_program_id: &Pubkey,
+) -> Pubkey {
     let seeds = &[
         wallet.as_ref(),
-        pinocchio_token::ID.as_ref(),
+        token_program_id.as_ref(),
         mint.as_ref(),
     ];
-    
+
     let (address, _) = pinocchio::pubkey::find_program_address(
         seeds,
         &ASSOCIATED_TOKEN_PROGRAM_ID,
     );
-    
+
     address
 }
-
-//todo 这么hardcoding吗？
-/// Associated Token Program ID
-const ASSOCIATED_TOKEN_PROGRAM_ID: Pubkey = [
-    0x8c, 0x97, 0x25, 0x8f, 0x4e, 0x24, 0x89, 0xf1,
-    0xbb, 0x3d, 0x10, 0x29, 0x14, 0x8e, 0x0d, 0x83,
-    0x0b, 0x5a, 0x13, 0x99, 0xda, 0xff, 0x10, 0x84,
-    0x04, 0x8e, 0x7b, 0xd8, 0xdb, 0xe9, 0xf8, 0x59,
-];
 
 /// 手动调用 Associated Token Account Program 创建 ATA
 fn invoke_create_associated_token_account(
