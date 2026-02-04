@@ -1,8 +1,16 @@
-pub struct Rerund<'a> {
-    pub accounts: RerundAccounts<'a>,
+use crate::state::Escrow;
+use pinocchio::{
+    account_info::AccountInfo, program_error::ProgramError, pubkey::create_program_address,
+    instruction::{Seed, Signer}, ProgramResult,
+};
+use pinocchio_token::{instructions::{Transfer, CloseAccount}, state::TokenAccount};
+use super::helpers::*;
+
+pub struct Refund<'a> {
+    pub accounts: RefundAccounts<'a>,
 }
 
-impl<'a> Rerund<'a> {
+impl<'a> Refund<'a> {
     pub const DISCRIMINATOR: &'a u8 = &2;
 
     pub fn process(&mut self) -> ProgramResult {
@@ -66,11 +74,11 @@ impl<'a> Rerund<'a> {
     }
 }
 
-impl<'a> TryFrom<&'a [AccountInfo]> for Rerund<'a> {
+impl<'a> TryFrom<&'a [AccountInfo]> for Refund<'a> {
     type Error = ProgramError;
 
     fn try_from(accounts: &'a [AccountInfo]) -> Result<Self, Self::Error> {
-        let accounts = RerundAccounts::try_from(accounts)?;
+        let accounts = RefundAccounts::try_from(accounts)?;
 
         // Initialize necessary accounts
         AssociatedTokenAccount::init_if_needed(
@@ -86,7 +94,7 @@ impl<'a> TryFrom<&'a [AccountInfo]> for Rerund<'a> {
     }
 }
 
-pub struct RerundAccounts<'a> {
+pub struct RefundAccounts<'a> {
     pub maker: &'a AccountInfo,
     pub escrow: &'a AccountInfo,
     pub mint_a: &'a AccountInfo,
@@ -96,7 +104,7 @@ pub struct RerundAccounts<'a> {
     pub token_program: &'a AccountInfo,
 }
 
-impl<'a> TryFrom<&'a [AccountInfo]> for RerundAccounts<'a> {
+impl<'a> TryFrom<&'a [AccountInfo]> for RefundAccounts<'a> {
     type Error = ProgramError;
 
     fn try_from(accounts: &'a [AccountInfo]) -> Result<Self, Self::Error> {
