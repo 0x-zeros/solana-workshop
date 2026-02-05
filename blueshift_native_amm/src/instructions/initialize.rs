@@ -1,15 +1,21 @@
 use crate::state::Config;
 use core::mem::size_of;
 use pinocchio::{
-    account_info::AccountInfo, program_error::ProgramError, pubkey::find_program_address,
-    instruction::{Seed, Signer}, ProgramResult, sysvars::{rent::Rent, Sysvar},
+    ProgramResult,
+    account_info::AccountInfo,
+    instruction::{Seed, Signer},
+    program_error::ProgramError,
+    pubkey::find_program_address,
+    sysvars::{Sysvar, rent::Rent},
 };
-use pinocchio_token::{instructions::{Transfer, CloseAccount}, state::TokenAccount};
-use pinocchio_token::state::Mint;
 use pinocchio_system::instructions::CreateAccount;
+use pinocchio_token::state::Mint;
+use pinocchio_token::{
+    instructions::{CloseAccount, Transfer},
+    state::TokenAccount,
+};
 
-// use super::helpers::*;
-
+use super::helpers::*;
 
 pub struct Initialize<'a> {
     pub accounts: InitializeAccounts<'a>,
@@ -21,7 +27,41 @@ impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for Initialize<'a> {
 
     fn try_from((data, accounts): (&'a [u8], &'a [AccountInfo])) -> Result<Self, Self::Error> {
         let accounts = InitializeAccounts::try_from(accounts)?;
-        let instruction_data: InitializeInstructionData = InitializeInstructionData::try_from(data)?;
+        let instruction_data: InitializeInstructionData =
+            InitializeInstructionData::try_from(data)?;
+
+        //Initialize the config account
+        let seed_binding = instruction_data.seed.to_le_bytes();
+        let config_seeds = [
+            Seed::from(b"config"),
+            Seed::from(&seed_binding),
+            Seed::from(&instruction_data.mint_x),
+            Seed::from(&instruction_data.mint_y),
+            Seed::from(&instruction_data.config_bump),
+        ];
+
+        ProgramAccount::init::<Config>(
+            accounts.initializer,
+            accounts.config,
+            &config_seeds[..],
+            Config::LEN,
+        )?;
+
+        //mint_lp
+        let mint_lp_seeds = [
+            Seed::from(b"mint_lp"),
+            Seed::from(accounts.config.key()),
+            Seed::from(&instruction_data.lp_bump),
+        ];
+
+        MintInterface::init(
+            accounts.initializer,
+            accounts.mint_lp,
+            &mint_lp_seeds[..],
+            6, //hardcoded
+            accounts.initializer,
+            accounts.token_program,
+        )?;
 
         Ok(Self {
             accounts,
@@ -34,12 +74,22 @@ impl<'a> Initialize<'a> {
     pub const DISCRIMINATOR: &'a u8 = &0;
 
     pub fn process(&mut self) -> ProgramResult {
-      //..
+        //Populate the config account
+        let mut data = self.accounts.config.try_borrow_mut_data()?;
+        let config = Config::load_mut_unchecked(data.as_mut())?;
 
-      Ok(())
+        config.set_inner(
+            self.instruction_data.seed,
+            self.instruction_data.authority,
+            self.instruction_data.mint_x,
+            self.instruction_data.mint_y,
+            self.instruction_data.fee,
+            self.instruction_data.config_bump,
+        );
+
+        Ok(())
     }
 }
-
 
 pub struct InitializeAccounts<'a> {
     pub initializer: &'a AccountInfo,
@@ -54,9 +104,34 @@ impl<'a> TryFrom<&'a [AccountInfo]> for InitializeAccounts<'a> {
     type Error = ProgramError;
 
     fn try_from(accounts: &'a [AccountInfo]) -> Result<Self, Self::Error> {
-        //..
-        //todo
+        let [
+            initializer,
+            mint_lp,
+            config,
+            system_program,
+            token_program,
+            _,
+        ] = accounts
+        else {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        };
 
+        // 随着经验的积累，您会注意到许多这些检查可以省略，而依赖于 CPI 本身强制执行的约束。
+        //例如，对于此账户结构，不需要任何显式检查；如果不满足约束，程序将默认失败。
+
+        //我们不需要对传入的账户进行显式检查。
+        // 这是因为在实际操作中，如果有问题，指令会失败；要么在 CPI（跨程序调用）期间，要么通过我们在程序中设置的早期检查失败。
+        // 例如，考虑 initializer 账户。我们期望它既是 signer 又是 mutable，但如果不是，CreateAccount 指令将会自动失败，因为它需要这些属性来满足 payer 的要求。
+        // 同样地，如果传递的 config 账户具有无效的 mint_x 或 mint_y，任何尝试向协议中存入资金的操作都会在代币转移期间失败。
+        // 随着经验的积累，您会发现可以省略许多检查，以保持指令的轻量化和优化，依赖系统和下游指令来强制执行约束
+
+        Ok(Self {
+            initializer,
+            mint_lp,
+            config,
+            system_program,
+            token_program,
+        })
     }
 }
 
