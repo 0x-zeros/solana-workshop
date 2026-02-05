@@ -4,12 +4,11 @@ use pinocchio::{
 };
 entrypoint!(process_instruction);
 
-//todo 没必要用pub吧?
-pub mod instructions;
-pub use instructions::*;
+mod instructions;
+use instructions::*;
 
-pub mod state;
-pub use state::*;
+mod state;
+// use state::*;
 
 // 22222222222222222222222222222222222222222222
 pub const ID: Pubkey = [
