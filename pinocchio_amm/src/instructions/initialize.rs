@@ -1,4 +1,4 @@
-use std::mem::MaybeUninit;
+use core::mem::MaybeUninit;
 
 use pinocchio::{
     AccountView, ProgramResult,
@@ -111,6 +111,12 @@ impl<'a> Initialize<'a> {
     pub fn process(&mut self) -> ProgramResult {
         let instruction_data = &self.instruction_data;
         let accounts = &self.accounts;
+
+        // 验证初始化者已签名
+        if !accounts.initializer.is_signer() {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+
         let rent = Rent::get()?;
 
         // --- 1. 创建 Config 账户 ---

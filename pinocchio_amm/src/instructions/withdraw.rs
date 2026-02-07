@@ -98,16 +98,23 @@ impl<'a> Withdraw<'a> {
         let accounts = &self.accounts;
         let data = &self.instruction_data;
 
+        // 0. 验证用户已签名
+        if !accounts.user.is_signer() {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+
         // 1. 过期检查
         let clock = Clock::get()?;
         if clock.unix_timestamp > data.expiration {
             return Err(ProgramError::InvalidArgument);
         }
 
-        // 2. 加载状态并检查 (Withdraw 要求非 Disabled)
+        // 2. 加载状态并检查 (Withdraw 要求 Initialized 或 WithdrawOnly)
         let config = Config::load(accounts.config)?;
-        // 假设 0: Uninitialized, 1: Initialized, 2: Disabled
-        if config.state() == 2 {
+        let state = config.state();
+        if state != crate::AmmState::Initialized as u8
+            && state != crate::AmmState::WithdrawOnly as u8
+        {
             return Err(ProgramError::InvalidAccountData);
         }
 
@@ -115,6 +122,11 @@ impl<'a> Withdraw<'a> {
         let mint_lp = unsafe { Mint::from_account_view_unchecked(accounts.mint_lp)? };
         let vault_x = unsafe { TokenAccount::from_account_view_unchecked(accounts.vault_x)? };
         let vault_y = unsafe { TokenAccount::from_account_view_unchecked(accounts.vault_y)? };
+
+        // 3.1 验证 vault 的 mint 与 config 一致，防止传入伪造 vault
+        if vault_x.mint() != config.mint_x() || vault_y.mint() != config.mint_y() {
+            return Err(ProgramError::InvalidAccountData);
+        }
 
         // 4. 计算应退还的 X, Y 数量
         let (x, y) = if mint_lp.supply() == data.amount {
@@ -169,7 +181,7 @@ impl<'a> Withdraw<'a> {
             amount: x,
         }
         // .invoke_signed(&[signer.clone()])?;
-        .invoke_signed(std::slice::from_ref(&signer))?;
+        .invoke_signed(core::slice::from_ref(&signer))?;
 
         Transfer {
             from: accounts.vault_y,

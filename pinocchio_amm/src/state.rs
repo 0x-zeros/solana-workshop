@@ -137,7 +137,7 @@ impl Config {
 
     #[inline(always)]
     pub fn set_state(&mut self, state: u8) -> Result<(), ProgramError> {
-        if state.ge(&(AmmState::WithdrawOnly as u8)) {
+        if state > AmmState::WithdrawOnly as u8 {
             return Err(ProgramError::InvalidAccountData);
         }
         self.state = state;

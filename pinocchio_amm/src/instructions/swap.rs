@@ -87,6 +87,11 @@ impl<'a> Swap<'a> {
         let accounts = &self.accounts;
         let data = &self.instruction_data;
 
+        // 0. 验证用户已签名
+        if !accounts.user.is_signer() {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+
         // 1. 验证过期时间
         let clock = Clock::get()?;
         if clock.unix_timestamp > data.expiration {
@@ -103,6 +108,11 @@ impl<'a> Swap<'a> {
         // 3. 获取金库当前余额并计算交换
         let vault_x = unsafe { TokenAccount::from_account_view_unchecked(accounts.vault_x)? };
         let vault_y = unsafe { TokenAccount::from_account_view_unchecked(accounts.vault_y)? };
+
+        // 3.1 验证 vault 的 mint 与 config 一致，防止传入伪造 vault
+        if vault_x.mint() != config.mint_x() || vault_y.mint() != config.mint_y() {
+            return Err(ProgramError::InvalidAccountData);
+        }
 
         let mut curve = ConstantProduct::init(
             vault_x.amount(),
