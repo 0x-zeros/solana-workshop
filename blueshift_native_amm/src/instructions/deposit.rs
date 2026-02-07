@@ -129,19 +129,7 @@ impl<'a> Deposit<'a> {
         .invoke()?;
 
         //  签署并执行 MintTo (Config PDA -> 用户)
-        let seed_binding = config.seed().to_le_bytes();
-        let mint_x = config.mint_x(); // Returns &Pubkey
-        let mint_y = config.mint_y(); // Returns &Pubkey
-        let bump = config.config_bump(); // Returns [u8; 1]
-
-        // Now create the seeds using references to those stable variables
-        let config_seeds = [
-            Seed::from(b"config"),
-            Seed::from(&seed_binding),
-            Seed::from(mint_x.as_ref()),
-            Seed::from(mint_y.as_ref()),
-            Seed::from(&bump), // Reference to the local variable 'bump'
-        ];
+        let config_seeds = config.config_seeds();
         let signer = Signer::from(&config_seeds);
 
         MintTo {

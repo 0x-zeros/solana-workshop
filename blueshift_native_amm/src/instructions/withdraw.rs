@@ -132,18 +132,7 @@ impl<'a> Withdraw<'a> {
         .invoke()?;
 
         // 构造 Config PDA 签名以从金库转账
-        let seed_binding = config.seed().to_le_bytes();
-        let mint_x_key = config.mint_x();
-        let mint_y_key = config.mint_y();
-        let bump = config.config_bump();
-
-        let config_seeds = [
-            Seed::from(b"config"),
-            Seed::from(&seed_binding),
-            Seed::from(mint_x_key.as_ref()),
-            Seed::from(mint_y_key.as_ref()),
-            Seed::from(&bump),
-        ];
+        let config_seeds = config.config_seeds();
         let signer = Signer::from(&config_seeds);
 
         // 转移 Token X 和 Y (Config PDA 签名)

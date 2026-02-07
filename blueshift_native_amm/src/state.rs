@@ -1,7 +1,32 @@
 use core::mem::size_of;
-use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
+use pinocchio::{
+    account_info::AccountInfo, 
+    instruction::Seed, 
+    program_error::ProgramError, 
+    pubkey::Pubkey
+};
 
 pub const LP_DECIMALS: u8 = 6;
+
+/// 从配置参数构造 config PDA 的种子数组
+/// 
+/// 用于 initialize 阶段（还没有 Config 实例）或任何需要从原始参数构造种子的场景
+#[inline(always)]
+pub fn config_seeds_from_parts(
+    seed: u64,
+    mint_x: &Pubkey,
+    mint_y: &Pubkey,
+    config_bump: [u8; 1],
+) -> [Seed; 5] {
+    let seed_binding = seed.to_le_bytes();
+    [
+        Seed::from(b"config"),
+        Seed::from(&seed_binding),
+        Seed::from(mint_x.as_ref()),
+        Seed::from(mint_y.as_ref()),
+        Seed::from(&config_bump),
+    ]
+}
 
 #[repr(C)]
 pub struct Config {
@@ -98,6 +123,24 @@ impl Config {
     #[inline(always)]
     pub fn config_bump(&self) -> [u8; 1] {
         self.config_bump
+    }
+
+    /// 构造此 Config PDA 的种子数组，用于签名操作
+    /// 
+    /// 调用方应在栈上持有返回的 seeds，然后构造 Signer：
+    /// ```
+    /// let seeds = config.config_seeds();
+    /// let signer = Signer::from(&seeds);
+    /// xxx.invoke_signed(&[signer])?;
+    /// ```
+    #[inline(always)]
+    pub fn config_seeds(&self) -> [Seed; 5] {
+        config_seeds_from_parts(
+            self.seed(),
+            self.mint_x(),
+            self.mint_y(),
+            self.config_bump(),
+        )
     }
 
     //辅助函数

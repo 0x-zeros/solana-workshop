@@ -1,4 +1,4 @@
-use crate::state::Config;
+use crate::state::{Config, config_seeds_from_parts};
 use core::mem::size_of;
 use pinocchio::{
     ProgramResult,
@@ -31,14 +31,12 @@ impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for Initialize<'a> {
             InitializeInstructionData::try_from(data)?;
 
         //Initialize the config account
-        let seed_binding = instruction_data.seed.to_le_bytes();
-        let config_seeds = [
-            Seed::from(b"config"),
-            Seed::from(&seed_binding),
-            Seed::from(&instruction_data.mint_x),
-            Seed::from(&instruction_data.mint_y),
-            Seed::from(&instruction_data.config_bump),
-        ];
+        let config_seeds = config_seeds_from_parts(
+            instruction_data.seed,
+            &instruction_data.mint_x,
+            &instruction_data.mint_y,
+            instruction_data.config_bump,
+        );
 
         ProgramAccount::init::<Config>(
             accounts.initializer,
