@@ -58,7 +58,7 @@ impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for Initialize<'a> {
             accounts.initializer,
             accounts.mint_lp,
             &mint_lp_seeds[..],
-            6, //hardcoded
+            crate::state::LP_DECIMALS,
             accounts.initializer,
             accounts.token_program,
         )?;

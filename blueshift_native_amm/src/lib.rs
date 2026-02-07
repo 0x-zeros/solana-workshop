@@ -9,6 +9,8 @@ use instructions::*;
 
 mod state;
 // use state::*;
+mod errors;
+// use errors::*;
 
 // 22222222222222222222222222222222222222222222
 pub const ID: Pubkey = [

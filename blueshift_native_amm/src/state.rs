@@ -1,6 +1,8 @@
 use core::mem::size_of;
 use pinocchio::{account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey};
 
+pub const LP_DECIMALS: u8 = 6;
+
 #[repr(C)]
 pub struct Config {
     state: u8,
