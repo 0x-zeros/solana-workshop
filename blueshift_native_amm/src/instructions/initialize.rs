@@ -1,19 +1,12 @@
 use crate::state::{Config, config_seeds_from_parts};
-use core::mem::size_of;
+use core::mem::{size_of, MaybeUninit};
 use pinocchio::{
     ProgramResult,
     account_info::AccountInfo,
-    instruction::{Seed, Signer},
+    instruction::Seed,
     program_error::ProgramError,
-    pubkey::find_program_address,
-    sysvars::{Sysvar, rent::Rent},
 };
-use pinocchio_system::instructions::CreateAccount;
 use pinocchio_token::state::Mint;
-use pinocchio_token::{
-    instructions::{CloseAccount, Transfer},
-    state::TokenAccount,
-};
 
 use super::helpers::*;
 
@@ -31,11 +24,12 @@ impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for Initialize<'a> {
             InitializeInstructionData::try_from(data)?;
 
         //Initialize the config account
+        let seed_binding = instruction_data.seed.to_le_bytes();
         let config_seeds = config_seeds_from_parts(
-            instruction_data.seed,
+            &seed_binding,
             &instruction_data.mint_x,
             &instruction_data.mint_y,
-            instruction_data.config_bump,
+            &instruction_data.config_bump,
         );
 
         ProgramAccount::init::<Config>(
@@ -52,13 +46,13 @@ impl<'a> TryFrom<(&'a [u8], &'a [AccountInfo])> for Initialize<'a> {
             Seed::from(&instruction_data.lp_bump),
         ];
 
-        MintInterface::init(
+        MintInterface::init::<Mint>(
             accounts.initializer,
             accounts.mint_lp,
             &mint_lp_seeds[..],
             crate::state::LP_DECIMALS,
-            accounts.initializer,
-            accounts.token_program,
+            accounts.initializer.key(),
+            accounts.token_program.key(),
         )?;
 
         Ok(Self {
@@ -74,7 +68,7 @@ impl<'a> Initialize<'a> {
     pub fn process(&mut self) -> ProgramResult {
         //Populate the config account
         let mut data = self.accounts.config.try_borrow_mut_data()?;
-        let config = Config::load_mut_unchecked(data.as_mut())?;
+        let config = unsafe { Config::load_mut_unchecked(data.as_mut())? };
 
         config.set_inner(
             self.instruction_data.seed,
@@ -83,7 +77,7 @@ impl<'a> Initialize<'a> {
             self.instruction_data.mint_y,
             self.instruction_data.fee,
             self.instruction_data.config_bump,
-        );
+        )?;
 
         Ok(())
     }

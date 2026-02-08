@@ -1,20 +1,16 @@
-use super::helpers::*;
-use crate::errors::AmmError;
 use crate::state::{AmmState, Config};
 use core::mem::size_of;
 use constant_product_curve::ConstantProduct;
 use pinocchio::{
     ProgramResult,
     account_info::AccountInfo,
-    instruction::{Seed, Signer},
+    instruction::Signer,
     program_error::ProgramError,
-    pubkey::find_program_address,
-    sysvars::{Sysvar, rent::Rent, clock::Clock},
+    sysvars::{Sysvar, clock::Clock},
 };
-use pinocchio_system::instructions::CreateAccount;
 use pinocchio_token::state::Mint;
 use pinocchio_token::{
-    instructions::{CloseAccount, Transfer, MintTo, Burn},
+    instructions::{Transfer, Burn},
     state::TokenAccount,
 };
 

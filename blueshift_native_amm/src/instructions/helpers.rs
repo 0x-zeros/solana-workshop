@@ -6,7 +6,8 @@ use pinocchio::{
     sysvars::{rent::Rent, Sysvar},
 };
 use pinocchio_system::instructions::CreateAccount;
-use pinocchio_token::state::{Mint, TokenAccount, InitializeMint2};
+use pinocchio_token::state::{Mint, TokenAccount};
+use pinocchio_token::instructions::InitializeMint2;
 
 // ============================================================================
 // Program ID 常量
@@ -293,7 +294,7 @@ impl MintInterface {
             from: payer,
             to: account,
             lamports,
-            space: space as u64,
+            space: Mint::LEN as u64,
             owner: token_program,
         }
         .invoke_signed(&[pinocchio::instruction::Signer::from(seeds)])?;
@@ -301,7 +302,8 @@ impl MintInterface {
         InitializeMint2 {
             mint: account,
             decimals: num_decimals,
-            authority: mint_authority,
+            mint_authority: mint_authority,
+            freeze_authority: None,
         }
         .invoke_signed(&[pinocchio::instruction::Signer::from(seeds)])?;
 

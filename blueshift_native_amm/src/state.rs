@@ -1,6 +1,6 @@
 use core::mem::size_of;
 use pinocchio::{
-    account_info::AccountInfo, 
+    account_info::{AccountInfo, Ref, RefMut}, 
     instruction::Seed, 
     program_error::ProgramError, 
     pubkey::Pubkey
@@ -11,20 +11,21 @@ pub const LP_DECIMALS: u8 = 6;
 /// 从配置参数构造 config PDA 的种子数组
 /// 
 /// 用于 initialize 阶段（还没有 Config 实例）或任何需要从原始参数构造种子的场景
+/// 
+/// 注意：seed_binding 必须由调用方在栈上创建并传入引用，以确保生命周期正确
 #[inline(always)]
-pub fn config_seeds_from_parts(
-    seed: u64,
-    mint_x: &Pubkey,
-    mint_y: &Pubkey,
-    config_bump: [u8; 1],
-) -> [Seed; 5] {
-    let seed_binding = seed.to_le_bytes();
+pub fn config_seeds_from_parts<'a>(
+    seed_binding: &'a [u8; 8],
+    mint_x: &'a Pubkey,
+    mint_y: &'a Pubkey,
+    config_bump: &'a [u8; 1],
+) -> [Seed<'a>; 5] {
     [
         Seed::from(b"config"),
-        Seed::from(&seed_binding),
+        Seed::from(seed_binding.as_ref()),
         Seed::from(mint_x.as_ref()),
         Seed::from(mint_y.as_ref()),
-        Seed::from(&config_bump),
+        Seed::from(config_bump.as_ref()),
     ]
 }
 
@@ -70,9 +71,18 @@ impl Config {
         if account_info.owner() != &crate::ID {
             return Err(ProgramError::InvalidAccountOwner);
         }
-        Ok(Self::from_bytes_unchecked(
-            account_info.borrow_data_unchecked(),
-        ))
+        unsafe {
+            Ok(Self::from_bytes_unchecked(
+                account_info.borrow_data_unchecked(),
+            ))
+        }
+    }
+    #[inline(always)]
+    pub unsafe fn load_mut_unchecked(data: &mut [u8]) -> Result<&mut Self, ProgramError> {
+        if data.len() != Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        unsafe { Ok(Self::from_bytes_unchecked_mut(data)) }
     }
     /// Return a `Config` from the given bytes.
     ///
@@ -84,7 +94,7 @@ impl Config {
     /// This method does not perform a length validation.
     #[inline(always)]
     pub unsafe fn from_bytes_unchecked(bytes: &[u8]) -> &Self {
-        &*(bytes.as_ptr() as *const Config)
+        unsafe { &*(bytes.as_ptr() as *const Config) }
     }
     /// Return a mutable `Config` reference from the given bytes.
     ///
@@ -93,7 +103,7 @@ impl Config {
     /// The caller must ensure that `bytes` contains a valid representation of `Config`.
     #[inline(always)]
     pub unsafe fn from_bytes_unchecked_mut(bytes: &mut [u8]) -> &mut Self {
-        &mut *(bytes.as_mut_ptr() as *mut Config)
+        unsafe { &mut *(bytes.as_mut_ptr() as *mut Config) }
     }
     // Getter methods for safe field access
     #[inline(always)]
@@ -136,10 +146,10 @@ impl Config {
     #[inline(always)]
     pub fn config_seeds(&self) -> [Seed; 5] {
         config_seeds_from_parts(
-            self.seed(),
+            &self.seed,
             self.mint_x(),
             self.mint_y(),
-            self.config_bump(),
+            &self.config_bump,
         )
     }
 
@@ -172,6 +182,26 @@ impl Config {
         }
         self.fee = fee.to_le_bytes();
         Ok(())
+    }
+    #[inline(always)]
+    pub fn set_seed(&mut self, seed: u64) {
+        self.seed = seed.to_le_bytes();
+    }
+    #[inline(always)]
+    pub fn set_authority(&mut self, authority: Pubkey) {
+        self.authority = authority;
+    }
+    #[inline(always)]
+    pub fn set_mint_x(&mut self, mint_x: Pubkey) {
+        self.mint_x = mint_x;
+    }
+    #[inline(always)]
+    pub fn set_mint_y(&mut self, mint_y: Pubkey) {
+        self.mint_y = mint_y;
+    }
+    #[inline(always)]
+    pub fn set_config_bump(&mut self, config_bump: [u8; 1]) {
+        self.config_bump = config_bump;
     }
     #[inline(always)]
     pub fn set_inner(
